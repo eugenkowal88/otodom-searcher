@@ -60,6 +60,16 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", text).strip()
 
 
+def _get_characteristic(characteristics: list[dict], key: str) -> str | None:
+    for item in characteristics:
+        if item.get("key") == key:
+            value = item.get("value", "")
+            if value and value != "0":
+                return item.get("localizedValue")
+            return None
+    return None
+
+
 def fetch_detail(slug: str) -> dict:
     url = f"https://www.otodom.pl/pl/oferta/{slug}"
     response = httpx.get(url, headers=_HEADERS, follow_redirects=True, timeout=30)
@@ -68,4 +78,13 @@ def fetch_detail(slug: str) -> dict:
     ad = data["props"]["pageProps"]["ad"]
     description = _strip_html(ad.get("description", ""))
     photos = [img["large"] for img in ad.get("images", []) if img.get("large")]
-    return {"description": description, "photos": photos}
+    characteristics = ad.get("characteristics", []) or []
+    agency = ad.get("agency") or {}
+    return {
+        "description": description,
+        "photos": photos,
+        "rent": _get_characteristic(characteristics, "rent"),
+        "deposit": _get_characteristic(characteristics, "deposit"),
+        "advertiser_type": ad.get("advertiserType", "private"),
+        "agency_name": agency.get("name"),
+    }

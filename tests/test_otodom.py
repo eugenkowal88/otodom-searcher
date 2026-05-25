@@ -114,6 +114,13 @@ DETAIL_NEXT_DATA = {
                     {"large": "https://img.example.com/d4.jpg"},
                     {"large": "https://img.example.com/d5.jpg"},
                 ],
+                "characteristics": [
+                    {"key": "price", "value": "3200", "localizedValue": "3 200 zł"},
+                    {"key": "rent", "value": "800", "localizedValue": "800 zł"},
+                    {"key": "deposit", "value": "6400", "localizedValue": "6 400 zł"},
+                ],
+                "advertiserType": "business",
+                "agency": {"name": "Test Agency Sp. z o o."},
             }
         }
     }
@@ -147,3 +154,49 @@ def test_fetch_detail_requests_correct_url():
         fetch_detail("mieszkanie-mokotow-ID12345")
     call_url = mock_get.call_args[0][0]
     assert call_url == "https://www.otodom.pl/pl/oferta/mieszkanie-mokotow-ID12345"
+
+
+def test_fetch_detail_extracts_rent_deposit_from_characteristics():
+    with patch("httpx.get", return_value=_mock_get(DETAIL_HTML)):
+        detail = fetch_detail("any-slug")
+    assert detail["rent"] == "800 zł"
+    assert detail["deposit"] == "6 400 zł"
+
+
+def test_fetch_detail_returns_none_for_zero_rent_or_deposit():
+    data = json.loads(json.dumps(DETAIL_NEXT_DATA))
+    data["props"]["pageProps"]["ad"]["characteristics"] = [
+        {"key": "price", "value": "3200", "localizedValue": "3 200 zł"},
+        {"key": "rent", "value": "0", "localizedValue": "0 zł"},
+    ]
+    html = (
+        '<html><body>'
+        f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(data)}</script>'
+        '</body></html>'
+    )
+    with patch("httpx.get", return_value=_mock_get(html)):
+        detail = fetch_detail("any-slug")
+    assert detail["rent"] is None
+    assert detail["deposit"] is None
+
+
+def test_fetch_detail_extracts_agency_advertiser():
+    with patch("httpx.get", return_value=_mock_get(DETAIL_HTML)):
+        detail = fetch_detail("any-slug")
+    assert detail["advertiser_type"] == "business"
+    assert detail["agency_name"] == "Test Agency Sp. z o o."
+
+
+def test_fetch_detail_returns_none_agency_for_private():
+    data = json.loads(json.dumps(DETAIL_NEXT_DATA))
+    data["props"]["pageProps"]["ad"]["advertiserType"] = "private"
+    data["props"]["pageProps"]["ad"]["agency"] = None
+    html = (
+        '<html><body>'
+        f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(data)}</script>'
+        '</body></html>'
+    )
+    with patch("httpx.get", return_value=_mock_get(html)):
+        detail = fetch_detail("any-slug")
+    assert detail["advertiser_type"] == "private"
+    assert detail["agency_name"] is None
