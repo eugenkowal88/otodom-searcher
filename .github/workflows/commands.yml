@@ -1,19 +1,19 @@
-name: Search Otodom
+name: Process Bot Commands
 
 on:
   schedule:
-    - cron: '0 */2 * * *'   # every 2 hours
-  workflow_dispatch:          # manual trigger for testing
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 concurrency:
   group: otodom-bot
   cancel-in-progress: false
 
 jobs:
-  search:
+  process:
     runs-on: ubuntu-latest
     permissions:
-      contents: write         # needed to commit seen.json back
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -25,17 +25,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run search
-        run: python -m src.main
+      - name: Process commands
+        run: python -m src.commands
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
-      - name: Commit updated state
+      - name: Commit changes
         if: always()
         run: |
           git config user.name "otodom-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add state/seen.json
-          git diff --staged --quiet || git commit -m "chore: update seen listings [skip ci]"
+          git add config.yml state/seen.json state/bot_state.json
+          git diff --staged --quiet || git commit -m "chore: bot command updates [skip ci]"
           git push
