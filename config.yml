@@ -3,7 +3,7 @@ telegram:
   chat_id_env: TELEGRAM_CHAT_ID
 searches:
 - name: warszawa-rent
-  url: https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?limit=36&locations=%5Bmazowieckie%2Fwarszawa%2Fwarszawa%2Fwarszawa%2Fbielany%5D
+  url: https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?limit=36&locations=%5Bmazowieckie%2Fwarszawa%2Fwarszawa%2Fwarszawa%2Fbielany%5D&priceMax=3500&roomsNumber=%5BTWO%5D
   text_must_contain:
   - balkon
   - taras
