@@ -141,3 +141,19 @@ def test_run_passes_detail_fields_to_send_telegram(tmp_path):
     assert sent_listing["deposit"] == "4 000 zł"
     assert sent_listing["advertiser_type"] == "business"
     assert sent_listing["agency_name"] == "Fake Agency"
+
+
+def test_run_skips_when_paused(tmp_path):
+    cfg = _make_config(tmp_path)
+    seen_file = tmp_path / "seen.json"
+    seen_file.write_text("[]")
+    bot_state_file = tmp_path / "bot_state.json"
+    bot_state_file.write_text('{"last_update_id": 0, "paused": true}')
+
+    with patch("src.main.fetch_search") as mock_fetch, \
+         patch("src.main.send_telegram") as mock_send, \
+         patch.dict("os.environ", {"TG_TOKEN": "tok", "TG_CHAT_ID": "999"}):
+        run(config_file=cfg, state_file=seen_file, bot_state_file=bot_state_file)
+
+    mock_fetch.assert_not_called()
+    mock_send.assert_not_called()

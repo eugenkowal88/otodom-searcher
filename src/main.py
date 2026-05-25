@@ -11,6 +11,7 @@ from src.notify import send_telegram
 
 _DEFAULT_CONFIG = Path("config.yml")
 _DEFAULT_STATE = Path("state/seen.json")
+_DEFAULT_BOT_STATE = Path("state/bot_state.json")
 _SEND_DELAY_SECONDS = 3
 
 
@@ -20,13 +21,27 @@ def load_seen(state_file: Path = _DEFAULT_STATE) -> set[str]:
     return set()
 
 
+def _load_bot_state(path: Path) -> dict:
+    if path.exists():
+        return json.loads(path.read_text())
+    return {}
+
+
 def save_seen(seen: set[str], state_file: Path = _DEFAULT_STATE) -> None:
     state_file.parent.mkdir(parents=True, exist_ok=True)
     state_file.write_text(json.dumps(sorted(seen), indent=2))
 
 
-def run(config_file: Path = _DEFAULT_CONFIG, state_file: Path = _DEFAULT_STATE) -> None:
+def run(
+    config_file: Path = _DEFAULT_CONFIG,
+    state_file: Path = _DEFAULT_STATE,
+    bot_state_file: Path = _DEFAULT_BOT_STATE,
+) -> None:
     config = yaml.safe_load(config_file.read_text())
+    bot_state = _load_bot_state(bot_state_file)
+    if bot_state.get("paused"):
+        print("Paused — skipping search")
+        return
     token = os.environ[config["telegram"]["token_env"]]
     chat_id = os.environ[config["telegram"]["chat_id_env"]]
     seen = load_seen(state_file)

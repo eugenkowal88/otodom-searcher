@@ -115,3 +115,15 @@ def test_send_telegram_sends_up_to_10_photos():
         send_telegram("TOKEN", "123456", LISTING,
                       [f"https://img.example.com/{i}.jpg" for i in range(15)])
     assert len(captured["json"]["media"]) == 10
+
+
+def test_send_text_uses_send_message_method():
+    from src.notify import send_text
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    with patch("httpx.post", return_value=mock_resp) as mock_post:
+        send_text("TOKEN", 123, "hello")
+    url = mock_post.call_args[0][0]
+    payload = mock_post.call_args[1]["json"]
+    assert "sendMessage" in url
+    assert payload == {"chat_id": 123, "text": "hello"}

@@ -58,3 +58,7 @@ def send_telegram(token: str, chat_id: str, listing: dict, photos: list[str]) ->
         media = [{"type": "photo", "media": url} for url in photos]
         media[0]["caption"] = caption
         _post(token, "sendMediaGroup", {"chat_id": chat_id, "media": media})
+
+
+def send_text(token: str, chat_id: int, text: str) -> None:
+    _post(token, "sendMessage", {"chat_id": chat_id, "text": text})
