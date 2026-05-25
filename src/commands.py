@@ -169,3 +169,55 @@ def _cmd_district(args: str, config: dict, bot_state: dict, seen_file: Path) -> 
     url_final = _set_query_param(url_no_locations, "locations", locations_value)
     config["searches"][0]["url"] = url_final
     return f"Filtering districts: {', '.join(names)}"
+
+
+def _cmd_pause(args: str, config: dict, bot_state: dict, seen_file: Path) -> str:
+    bot_state["paused"] = True
+    return "Paused — search will skip until /resume."
+
+
+def _cmd_resume(args: str, config: dict, bot_state: dict, seen_file: Path) -> str:
+    bot_state["paused"] = False
+    return "Resumed."
+
+
+def _cmd_reset(args: str, config: dict, bot_state: dict, seen_file: Path) -> str:
+    seen_file.parent.mkdir(parents=True, exist_ok=True)
+    seen_file.write_text("[]")
+    return "seen cleared — next run will treat all matching listings as new."
+
+
+def _cmd_help(args: str, config: dict, bot_state: dict, seen_file: Path) -> str:
+    return (
+        "Commands:\n"
+        "/help — this list\n"
+        "/status — current config\n"
+        "/add <words> — add to whitelist (e.g. /add balkon taras)\n"
+        "/remove <words> — remove from whitelist\n"
+        "/block <words> — add to blacklist\n"
+        "/unblock <words> — remove from blacklist\n"
+        "/seturl <url> — replace Otodom search URL\n"
+        "/price 3400 or /price 2000-3400 — set price range\n"
+        "/rooms 2 — filter to 2 rooms (1-6)\n"
+        "/district <names> — filter to districts (e.g. /district mokotow bielany)\n"
+        "/pause — stop notifications\n"
+        "/resume — start again\n"
+        "/reset — clear seen listings"
+    )
+
+
+def _cmd_status(args: str, config: dict, bot_state: dict, seen_file: Path) -> str:
+    search = config["searches"][0]
+    seen_count = 0
+    if seen_file.exists():
+        seen_count = len(json.loads(seen_file.read_text()))
+    state = "PAUSED" if bot_state.get("paused") else "active"
+    whitelist = ", ".join(search.get("text_must_contain", [])) or "(empty)"
+    blacklist = ", ".join(search.get("text_must_not_contain", [])) or "(empty)"
+    return (
+        f"Status: {state}\n"
+        f"URL: {search['url']}\n"
+        f"Whitelist: {whitelist}\n"
+        f"Blacklist: {blacklist}\n"
+        f"Seen: {seen_count} listings"
+    )

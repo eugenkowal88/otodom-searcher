@@ -203,3 +203,56 @@ def test_cmd_district_errors_on_short_path():
     config["searches"][0]["url"] = "https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie?foo=bar"
     reply = _cmd_district("mokotow", config, {}, Path("/tmp/x"))
     assert "cannot determine city" in reply.lower()
+
+
+from src.commands import _cmd_pause, _cmd_resume, _cmd_reset, _cmd_help, _cmd_status
+
+
+def test_cmd_pause_sets_paused_true():
+    bot_state = {"last_update_id": 5, "paused": False}
+    reply = _cmd_pause("", _make_config(), bot_state, Path("/tmp/x"))
+    assert bot_state["paused"] is True
+    assert "paused" in reply.lower()
+
+
+def test_cmd_resume_sets_paused_false():
+    bot_state = {"last_update_id": 5, "paused": True}
+    reply = _cmd_resume("", _make_config(), bot_state, Path("/tmp/x"))
+    assert bot_state["paused"] is False
+    assert "resumed" in reply.lower()
+
+
+def test_cmd_reset_empties_seen_file(tmp_path):
+    seen_file = tmp_path / "seen.json"
+    seen_file.write_text('["111", "222", "333"]')
+    reply = _cmd_reset("", _make_config(), {}, seen_file)
+    import json as _json
+    assert _json.loads(seen_file.read_text()) == []
+    assert "cleared" in reply.lower() or "reset" in reply.lower()
+
+
+def test_cmd_help_lists_commands():
+    reply = _cmd_help("", _make_config(), {}, Path("/tmp/x"))
+    for cmd in ["/help", "/status", "/add", "/remove", "/block", "/unblock",
+                "/seturl", "/price", "/rooms", "/district", "/pause", "/resume", "/reset"]:
+        assert cmd in reply
+
+
+def test_cmd_status_shows_config_summary(tmp_path):
+    config = _make_config()
+    bot_state = {"last_update_id": 42, "paused": False}
+    seen_file = tmp_path / "seen.json"
+    seen_file.write_text('["1", "2", "3"]')
+    reply = _cmd_status("", config, bot_state, seen_file)
+    assert "balkon" in reply         # whitelist content
+    assert "kawalerka" in reply       # blacklist content
+    assert "3" in reply               # seen count
+    assert "otodom.pl" in reply       # url shown
+    assert ("active" in reply.lower() or "not paused" in reply.lower())
+
+
+def test_cmd_status_shows_paused():
+    config = _make_config()
+    bot_state = {"last_update_id": 0, "paused": True}
+    reply = _cmd_status("", config, bot_state, Path("/tmp/nonexistent.json"))
+    assert "paused" in reply.lower()
