@@ -64,7 +64,7 @@ def test_fetch_search_parses_listing():
     assert item["id"] == "12345"
     assert item["slug"] == "mieszkanie-mokotow-ID12345"
     assert item["title"] == "Mieszkanie 3-pok. z balkonem"
-    assert item["price"] == 3200          # rentPrice wins over totalPrice
+    assert item["price"] == 3500          # totalPrice is the headline rent
     assert item["area"] == 65
     assert item["rooms"] == "3"           # "THREE" mapped to "3"
     assert item["city"] == "Warszawa"
@@ -72,9 +72,12 @@ def test_fetch_search_parses_listing():
     assert item["url"] == "https://www.otodom.pl/pl/oferta/mieszkanie-mokotow-ID12345"
 
 
-def test_fetch_search_uses_total_price_when_rent_is_zero():
+def test_fetch_search_ignores_rent_price_admin_fee():
+    # rentPrice is the building admin fee (czynsz), not the rent.
+    # The headline price always comes from totalPrice.
     data = json.loads(json.dumps(SEARCH_NEXT_DATA))
-    data["props"]["pageProps"]["data"]["searchAds"]["items"][0]["rentPrice"]["value"] = 0
+    data["props"]["pageProps"]["data"]["searchAds"]["items"][0]["rentPrice"]["value"] = 999
+    data["props"]["pageProps"]["data"]["searchAds"]["items"][0]["totalPrice"]["value"] = 3500
     html = (
         '<html><body>'
         f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(data)}</script>'

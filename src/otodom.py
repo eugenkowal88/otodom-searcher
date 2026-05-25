@@ -33,9 +33,10 @@ def fetch_search(url: str) -> list[dict]:
 
 
 def _parse_item(raw: dict) -> dict:
-    rent = (raw.get("rentPrice") or {}).get("value", 0) or 0
-    total = (raw.get("totalPrice") or {}).get("value", 0) or 0
-    price = rent if rent > 0 else total
+    # Otodom's totalPrice is the headline rent paid to the landlord;
+    # rentPrice is the building's admin fee (czynsz) which we surface
+    # separately from fetch_detail's characteristics.
+    price = (raw.get("totalPrice") or {}).get("value", 0) or 0
 
     locations = raw["location"]["reverseGeocoding"]["locations"]
     district = next(
