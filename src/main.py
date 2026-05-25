@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from pathlib import Path
 
 import yaml
@@ -10,6 +11,7 @@ from src.notify import send_telegram
 
 _DEFAULT_CONFIG = Path("config.yml")
 _DEFAULT_STATE = Path("state/seen.json")
+_SEND_DELAY_SECONDS = 3
 
 
 def load_seen(state_file: Path = _DEFAULT_STATE) -> set[str]:
@@ -30,26 +32,28 @@ def run(config_file: Path = _DEFAULT_CONFIG, state_file: Path = _DEFAULT_STATE) 
     seen = load_seen(state_file)
     new_seen = set(seen)
 
-    for search in config["searches"]:
-        items = fetch_search(search["url"])
-        for item in items:
-            lid = str(item["id"])
-            if lid in seen:
-                continue
-            detail = fetch_detail(item["slug"])
-            full_text = item["title"] + " " + detail["description"]
-            if not text_check(
-                full_text,
-                search.get("text_must_contain", []),
-                search.get("text_must_not_contain", []),
-            ):
+    try:
+        for search in config["searches"]:
+            items = fetch_search(search["url"])
+            for item in items:
+                lid = str(item["id"])
+                if lid in seen:
+                    continue
+                detail = fetch_detail(item["slug"])
+                full_text = item["title"] + " " + detail["description"]
+                if not text_check(
+                    full_text,
+                    search.get("text_must_contain", []),
+                    search.get("text_must_not_contain", []),
+                ):
+                    new_seen.add(lid)
+                    continue
+                send_telegram(token, chat_id, item, detail["photos"])
                 new_seen.add(lid)
-                continue
-            send_telegram(token, chat_id, item, detail["photos"])
-            new_seen.add(lid)
-            print(f"Sent: {item['title']} ({lid})")
-
-    save_seen(new_seen, state_file)
+                print(f"Sent: {item['title']} ({lid})")
+                time.sleep(_SEND_DELAY_SECONDS)
+    finally:
+        save_seen(new_seen, state_file)
 
 
 if __name__ == "__main__":
