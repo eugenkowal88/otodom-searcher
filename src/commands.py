@@ -4,6 +4,10 @@ import re
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
+import httpx
+import yaml
+from src.notify import send_text
+
 
 def _normalize_words(raw: str) -> list[str]:
     parts = re.split(r"[\s,]+", raw.strip())
@@ -220,4 +224,101 @@ def _cmd_status(args: str, config: dict, bot_state: dict, seen_file: Path) -> st
         f"Whitelist: {whitelist}\n"
         f"Blacklist: {blacklist}\n"
         f"Seen: {seen_count} listings"
+    )
+
+
+_HANDLERS = {
+    "add": _cmd_add,
+    "remove": _cmd_remove,
+    "block": _cmd_block,
+    "unblock": _cmd_unblock,
+    "seturl": _cmd_seturl,
+    "price": _cmd_price,
+    "rooms": _cmd_rooms,
+    "district": _cmd_district,
+    "pause": _cmd_pause,
+    "resume": _cmd_resume,
+    "reset": _cmd_reset,
+    "help": _cmd_help,
+    "start": _cmd_help,
+    "status": _cmd_status,
+}
+
+
+def _handle_command(cmd: str, args: str, config: dict, bot_state: dict, seen_file: Path) -> str:
+    handler = _HANDLERS.get(cmd)
+    if not handler:
+        return "Unknown command. Try /help"
+    try:
+        return handler(args, config, bot_state, seen_file)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def _parse_command(text: str) -> tuple[str, str] | None:
+    if not text.startswith("/"):
+        return None
+    body = text[1:].split(maxsplit=1)
+    if not body:
+        return None
+    cmd = body[0].lower()
+    cmd = cmd.split("@", 1)[0]
+    args = body[1] if len(body) > 1 else ""
+    return cmd, args
+
+
+def poll_and_process(
+    token: str,
+    chat_id: int,
+    config_file: Path,
+    bot_state_file: Path,
+    seen_file: Path,
+) -> None:
+    bot_state = json.loads(bot_state_file.read_text()) if bot_state_file.exists() else {"last_update_id": 0, "paused": False}
+    config = yaml.safe_load(config_file.read_text())
+
+    last_id = bot_state.get("last_update_id", 0)
+    response = httpx.get(
+        f"https://api.telegram.org/bot{token}/getUpdates",
+        params={"offset": last_id + 1, "timeout": 0},
+        timeout=30,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    updates = payload.get("result", [])
+
+    if not updates:
+        return
+
+    for update in updates:
+        update_id = update["update_id"]
+        bot_state["last_update_id"] = max(bot_state.get("last_update_id", 0), update_id)
+
+        message = update.get("message") or {}
+        sender_chat = message.get("chat", {}).get("id")
+        text = message.get("text", "")
+
+        if sender_chat != chat_id:
+            continue
+
+        parsed = _parse_command(text)
+        if not parsed:
+            continue
+        cmd, args = parsed
+        reply = _handle_command(cmd, args, config, bot_state, seen_file)
+        send_text(token, chat_id, reply)
+
+    config_file.write_text(yaml.dump(config, allow_unicode=True, sort_keys=False))
+    bot_state_file.write_text(json.dumps(bot_state, indent=2))
+
+
+if __name__ == "__main__":
+    token = os.environ["TELEGRAM_TOKEN"]
+    chat_id = int(os.environ["TELEGRAM_CHAT_ID"])
+    poll_and_process(
+        token=token,
+        chat_id=chat_id,
+        config_file=Path("config.yml"),
+        bot_state_file=Path("state/bot_state.json"),
+        seen_file=Path("state/seen.json"),
     )
