@@ -290,26 +290,27 @@ def poll_and_process(
     if not updates:
         return
 
-    for update in updates:
-        update_id = update["update_id"]
-        bot_state["last_update_id"] = max(bot_state.get("last_update_id", 0), update_id)
+    try:
+        for update in updates:
+            update_id = update["update_id"]
+            bot_state["last_update_id"] = max(bot_state.get("last_update_id", 0), update_id)
 
-        message = update.get("message") or {}
-        sender_chat = message.get("chat", {}).get("id")
-        text = message.get("text", "")
+            message = update.get("message") or {}
+            sender_chat = message.get("chat", {}).get("id")
+            text = message.get("text", "")
 
-        if sender_chat != chat_id:
-            continue
+            if sender_chat != chat_id:
+                continue
 
-        parsed = _parse_command(text)
-        if not parsed:
-            continue
-        cmd, args = parsed
-        reply = _handle_command(cmd, args, config, bot_state, seen_file)
-        send_text(token, chat_id, reply)
-
-    config_file.write_text(yaml.dump(config, allow_unicode=True, sort_keys=False))
-    bot_state_file.write_text(json.dumps(bot_state, indent=2))
+            parsed = _parse_command(text)
+            if not parsed:
+                continue
+            cmd, args = parsed
+            reply = _handle_command(cmd, args, config, bot_state, seen_file)
+            send_text(token, chat_id, reply)
+    finally:
+        config_file.write_text(yaml.dump(config, allow_unicode=True, sort_keys=False))
+        bot_state_file.write_text(json.dumps(bot_state, indent=2))
 
 
 if __name__ == "__main__":
