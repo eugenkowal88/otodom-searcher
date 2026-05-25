@@ -56,5 +56,16 @@ def _parse_item(raw: dict) -> dict:
     }
 
 
+def _strip_html(text: str) -> str:
+    return re.sub(r"<[^>]+>", " ", text).strip()
+
+
 def fetch_detail(slug: str) -> dict:
-    raise NotImplementedError
+    url = f"https://www.otodom.pl/pl/oferta/{slug}"
+    response = httpx.get(url, headers=_HEADERS, follow_redirects=True, timeout=30)
+    response.raise_for_status()
+    data = _parse_next_data(response.text)
+    ad = data["props"]["pageProps"]["ad"]
+    description = _strip_html(ad.get("description", ""))
+    photos = [img["large"] for img in ad.get("images", []) if img.get("large")]
+    return {"description": description, "photos": photos}

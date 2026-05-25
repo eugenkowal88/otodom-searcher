@@ -100,3 +100,50 @@ def test_fetch_search_district_none_when_missing():
     with patch("httpx.get", return_value=_mock_get(html)):
         items = fetch_search("https://www.otodom.pl/...")
     assert items[0]["district"] is None
+
+
+DETAIL_NEXT_DATA = {
+    "props": {
+        "pageProps": {
+            "ad": {
+                "description": "<p>Piękne mieszkanie z <strong>balkonem</strong>.<br>Świeży remont.</p>",
+                "images": [
+                    {"large": "https://img.example.com/d1.jpg"},
+                    {"large": "https://img.example.com/d2.jpg"},
+                    {"large": "https://img.example.com/d3.jpg"},
+                    {"large": "https://img.example.com/d4.jpg"},
+                    {"large": "https://img.example.com/d5.jpg"},
+                ],
+            }
+        }
+    }
+}
+
+DETAIL_HTML = (
+    '<!DOCTYPE html><html><body>'
+    f'<script id="__NEXT_DATA__" type="application/json" crossorigin="anonymous">'
+    f'{json.dumps(DETAIL_NEXT_DATA)}'
+    '</script></body></html>'
+)
+
+
+def test_fetch_detail_strips_html_from_description():
+    with patch("httpx.get", return_value=_mock_get(DETAIL_HTML)):
+        detail = fetch_detail("mieszkanie-mokotow-ID12345")
+    assert "<p>" not in detail["description"]
+    assert "balkonem" in detail["description"]
+    assert "Świeży remont" in detail["description"]
+
+
+def test_fetch_detail_returns_all_photo_urls():
+    with patch("httpx.get", return_value=_mock_get(DETAIL_HTML)):
+        detail = fetch_detail("mieszkanie-mokotow-ID12345")
+    assert len(detail["photos"]) == 5
+    assert detail["photos"][0] == "https://img.example.com/d1.jpg"
+
+
+def test_fetch_detail_requests_correct_url():
+    with patch("httpx.get", return_value=_mock_get(DETAIL_HTML)) as mock_get:
+        fetch_detail("mieszkanie-mokotow-ID12345")
+    call_url = mock_get.call_args[0][0]
+    assert call_url == "https://www.otodom.pl/pl/oferta/mieszkanie-mokotow-ID12345"
