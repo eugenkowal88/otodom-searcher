@@ -1,19 +1,13 @@
 telegram:
-  token_env: TELEGRAM_TOKEN    # name of the GitHub Secret
+  token_env: TELEGRAM_TOKEN
   chat_id_env: TELEGRAM_CHAT_ID
-
 searches:
-  - name: warszawa-rent
-    # Paste your Otodom search URL here (open otodom.pl, set filters, copy URL from browser)
-    url: "https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?limit=36"
-    # At least ONE of these words must appear in title or description (case-insensitive substring)
-    # Set to [] to disable whitelist filtering
-    text_must_contain:
-      - balkon
-      - taras
-      - ogród
-    # Listing is skipped if ANY of these words appear (case-insensitive)
-    # Set to [] to disable blacklist filtering
-    text_must_not_contain:
-      - kawalerka
-      - parter
+- name: warszawa-rent
+  url: https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?limit=36
+  text_must_contain:
+  - balkon
+  - taras
+  - ogród
+  text_must_not_contain:
+  - kawalerka
+  - parter
