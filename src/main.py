@@ -48,6 +48,12 @@ def run(config_file: Path = _DEFAULT_CONFIG, state_file: Path = _DEFAULT_STATE) 
                 ):
                     new_seen.add(lid)
                     continue
+                item.update({
+                    "rent": detail["rent"],
+                    "deposit": detail["deposit"],
+                    "advertiser_type": detail["advertiser_type"],
+                    "agency_name": detail["agency_name"],
+                })
                 send_telegram(token, chat_id, item, detail["photos"])
                 new_seen.add(lid)
                 print(f"Sent: {item['title']} ({lid})")
