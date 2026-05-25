@@ -308,6 +308,7 @@ def poll_and_process(
             cmd, args = parsed
             reply = _handle_command(cmd, args, config, bot_state, seen_file)
             send_text(token, chat_id, reply)
+            print(f"Processed /{cmd} {args!r} → {reply.splitlines()[0][:80]}")
     finally:
         config_file.write_text(yaml.dump(config, allow_unicode=True, sort_keys=False))
         bot_state_file.write_text(json.dumps(bot_state, indent=2))
