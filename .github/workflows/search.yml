@@ -5,6 +5,10 @@ on:
     - cron: '0 */2 * * *'   # every 2 hours
   workflow_dispatch:          # manual trigger for testing
 
+concurrency:
+  group: search
+  cancel-in-progress: false
+
 jobs:
   search:
     runs-on: ubuntu-latest

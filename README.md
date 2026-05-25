@@ -34,9 +34,11 @@ Go to your fork: **Settings → Secrets and variables → Actions → New reposi
 | `TELEGRAM_TOKEN` | Bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | Your chat ID from getUpdates (e.g. `264743781`) |
 
-### 4. Test Manually
+### 4. Enable Actions and Test Manually
 
-**Actions → Search Otodom → Run workflow**
+GitHub disables Actions on forks by default. Open the **Actions** tab and click **"I understand my workflows, go ahead and enable them"** if prompted.
+
+Then: **Actions → Search Otodom → Run workflow**
 
 You should receive Telegram messages within ~30 seconds for any listings matching your filters.
 
